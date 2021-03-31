@@ -1,0 +1,322 @@
+---
+title: "| Replication of Figures, Tables and Numbers. \n| Forecasting Elections in Multi-Party Systems: A Bayesian Approach Combining Polls and Fundamentals \n"
+author: "| Marcel Neunhoeffer, Lukas F. Stoetzer, Thomas Gschwend, \n| Simon Munzert & Sebastian Sternberg \n"
+date: "6 June 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+source("code/R/auxiliary/packages.r")  # Load required packages
+source("code/R/auxiliary/functions.r") # Load additional functions
+```
+
+## Introduction
+
+This file replicates all the figures, tables and numbers in "Forecasting Elections in Multi-Party Systems: A Bayesian Approach Combining Polls and Fundamentals" (Stoetzer et al. 2018). As re-running all the models can be time consuming, this file takes the MCMC draws in the dataverse and reproduces the Figures and Numbers in the main text as well as all the Figures, Tables and Numbers in the Supplementary Materials. If you run the setup chunk all the necessary packages to replicate the results will be installed and loaded. 
+
+If you want to re-run our models you find the R files in `code/R`. You first want to re-run the pre-training of the structural model by running `code/R/01_xx_structural_pre_train_stan.R`, adjust xx accordingly for the country (ger or nz) you want to run the model for.
+Then you can run the combined model by running `code/R/02_xx_structural_pre_train_stan.R`. You will then have to set the working directory to `code/R`.
+
+The Stan code for the models can be found in `code/model_code`. All the data we used to estimate our models is stored in `data/ger` for Germany and `data/nz` for New Zealand.
+
+## R Environment
+
+This code was last tested and run on 6 June 2018.
+
+|               |                         |
+| ---           | ---                     |
+|platform       |x86_64-apple-darwin15.6.0| 
+|arch           |x86_64                   |   
+|os             |darwin15.6.0             |
+|system         |x86_64, darwin15.6.0     |   
+|status         |                         |   
+|major          |3                        |   
+|minor          |4.3                      |   
+|year           |2017                     |   
+|month          |11                       |   
+|day            |30                       |   
+|svn rev        |73796                    |   
+|language       |R                        |   
+|version.string |R version 3.4.3 (2017-11-30)|
+|nickname       |Kite-Eating Tree   | 
+|RStudio        |1.1.383 |
+
+
+## Dataverse Structure
+
+Dataverse
+
+- code
+  - model_code - Contains the Stan model files
+  - R - Contains the R code necessary for Replication
+- data
+  - ger - Contains all input data for Germany (Polls and Structural Predictors)
+    - Polls
+    - Structural
+    - structural_inits
+  - nz - Contains all input data for New Zealand (Polls and Structural Predictors)
+    - Polls
+    - Structural
+    - structural_inits
+- output 
+  - ger - Contains the output of the models for Germany
+    - draws
+    -forecasts
+    - plots
+  - nz - Contains the output of the models for New Zealand
+    - draws 
+    - forecasts
+    - plots
+- Replication.Rmd - This file, replicates everything in the article
+
+
+## Questions
+
+If you have any further questions or encounter issues while replicating the results please let us know via email to either (or both) Marcel Neunhoeffer (marcel.neunhoeffer@gess.uni-mannheim.de) or Lukas F. Stoetzer (lukas.stoetzer@uzh.ch). 
+
+## Replication - Article
+
+The following code chunks will replicate the figures, numbers and tables from the main text and the Supplementary Materials.
+
+### Final Forecast in Text (p. 5)
+
+```{r Final Forecast in Text}
+# Final Forecast in Text
+
+df <- readRDS(file="output/ger/draws/combined_model/draws_forcast_levels_2017_2.RDS")
+
+forecast <- df$forecast
+
+colnames(forecast) <- df$party_names
+
+adjustOrder <- match(c("cdu", "spd", "lin", "gru", "fdp", "afd", "oth"), df$party_names)
+
+
+forecast <- forecast[, adjustOrder]
+
+# Mean Forecast
+round(apply(forecast, 2, mean)*100, 1)
+
+# 5/6 Credible Intervals
+round(t(apply(forecast, 2, quantile, c(1/12, 11/12)))*100, 1)
+
+
+# RMSE in Text
+
+# 2017 Election results in the same order
+
+election_res <- c(32.9, 20.5, 9.2, 8.9, 10.7, 12.6, 5)
+
+
+round(sqrt(mean((apply(forecast, 2, mean)*100 - election_res)^2)), 2)
+```
+
+### Probabilities in Text
+
+```{r Probabilities in Text}
+# Probabilities in text
+
+# Probability of 7 (counting CDU and CSU as two parties) parties entering parliament
+sum(apply(forecast[,1:6] >= 0.05, 1, all)) / nrow(forecast) * 100
+
+# Probability for AfD to become third strongest party
+sum(t(apply(-forecast[,1:6], 1, rank))[,6] == 3) / nrow(forecast) * 100
+
+# Probability for Left to become third strongest party
+sum(t(apply(-forecast[,1:6], 1, rank))[,3] == 3) / nrow(forecast) * 100
+
+# Probability for Greens to become third strongest party
+sum(t(apply(-forecast[,1:6], 1, rank))[,4] == 3) / nrow(forecast) * 100
+
+# Probability for FDP to become third strongest party
+sum(t(apply(-forecast[,1:6], 1, rank))[,5] == 3) / nrow(forecast) * 100
+
+# Coalition Probabilities
+
+coa_df <- forecast
+
+# Set share of parties below 5-percent-threshold to 0
+
+coa_df[coa_df[,1:6] < 0.05] <- 0
+
+
+# Majority for Grand Coalition? 
+# (When coalition vote share is greater than half of the sum of the vote shares
+# of parties anbove the 5% thershold.)
+
+gc <- (coa_df[,1] + coa_df[,2]) > (apply(coa_df[,1:6], 1, sum) / 2)
+
+sum(gc) / nrow(forecast) * 100
+
+# Majority for Jamaica Coalition?
+
+jam <- (coa_df[,1] + coa_df[,4] + coa_df[,5]) > (apply(coa_df[,1:6], 1, sum) / 2)
+
+sum(jam) / nrow(forecast) * 100
+
+# Majority for Black-Yellow?
+
+by <- (coa_df[,1] + coa_df[,5]) > (apply(coa_df[,1:6], 1, sum) / 2)
+
+sum(by) / nrow(forecast) * 100
+
+# Majority for Black-Green?
+
+bg <- (coa_df[,1] + coa_df[,4]) > (apply(coa_df[,1:6], 1, sum) / 2)
+
+sum(bg) / nrow(forecast) * 100
+
+# Majority for Red-Red-Green?
+
+rrg <- (coa_df[,2] + coa_df[,3] + coa_df[,4]) > (apply(coa_df[,1:6], 1, sum) / 2)
+
+sum(rrg) / nrow(forecast) * 100
+```
+
+
+### Figure 1
+
+```{r Figure 1}
+source("code/R/Figure1.R")
+```
+
+### Figure 2
+
+```{r Figure 2}
+source("code/R/Figure2.R")
+```
+
+## Replication - Supplementary Material - Germany
+
+### B.1.2 Figure 1
+
+```{r B.1.2 Figure 1}
+source("code/R/Figure1B12.R")
+```
+
+### B.1.3 Figure 2
+
+```{r B.1.3 Figure 2}
+source("code/R/Figure2B13.R")
+```
+
+### B.2 Figure 3
+
+```{r B.2 Figure 3}
+source("code/R/Figure3B2.R")
+```
+
+### B.3.1 Table 1
+
+```{r B.3.1 Table 1}
+source("code/R/Table1B31.R")
+```
+
+### B.3.2 Table 2
+
+```{r B.3.2 Table 2}
+source("code/R/Table2B32.R")
+```
+
+### B.3.3 Table 3
+
+```{r B.3.3 Table 3}
+source("code/R/Table3B33.R")
+```
+
+### B.3.4 Table 4
+
+```{r B.3.4 Table 4}
+source("code/R/Table4B34.R")
+```
+
+## Replication - Supplementary Material - New Zealand
+
+### Forecast and RMSE in Text (C.1)
+
+```{r C.1 Forecast and RMSE}
+df <- readRDS(file="output/nz/draws/combined_model/draws_forcast_levels_2017_2.RDS")
+
+forecast <- df$forecast
+
+adjustOrder <- match(c("nat", "lab", "gre", "nzf", "oth"), df$party_names)
+
+
+forecast <- forecast[,adjustOrder]
+
+
+# Party Names
+
+plot_names <- c("National", "Labour", "Green", "NZ First", "Others")
+
+df_forecast <- data.frame(y = apply(forecast, 2,  mean),
+                          ci = t(apply(forecast, 2, function(x) quantile(x, c(1/12, 11/12)))),
+                          ci95 = t(apply(forecast,2, function(x) quantile(x, c(0.025, 0.975)))))
+
+rownames(df_forecast) <- plot_names
+colnames(df_forecast) <- c("value", "low", "high", "low95", "high95")
+
+df_forecast <- round(df_forecast*100, 1)
+
+# Numbers in text
+
+df_forecast
+
+round(sqrt(mean((round(df_forecast,1)[,1] -  c(44.45, 36.89, 6.27, 7.2, 5.19))^2)),2)
+
+# Quantities of Interest in text
+
+# Probability of National becoming strongest party
+round(sum(t(apply(-forecast[,1:5], 1, rank))[,1] == 1) / nrow(forecast) * 100, 1)
+
+# Probability for Greens to clear the 5 percent threshold
+round(sum(forecast[,3] >= 0.05)  / nrow(forecast) * 100, 1)
+
+# Probability for NZ First to clear the 5 percent threshold
+round(sum(forecast[,4] >= 0.05)  / nrow(forecast) * 100, 1)
+```
+
+### C.1 Figure 4
+
+```{r C.1 Figure 4}
+source("code/R/Figure4C1.R")
+```
+
+### C.1 Figure 5
+
+```{r C.1 Figure 5}
+source("code/R/Figure5C1.R")
+```
+
+### C.2.2 Figure 6
+
+```{r C.2.2 Figure 6}
+source("code/R/Figure6C22.R")
+```
+
+### C.2.3 Figure 7
+
+```{r C.2.3 Figure 7}
+source("code/R/Figure7C23.R")
+```
+
+### C.3 Figure 8
+
+```{r C.3 Figure 8}
+source("code/R/Figure8C3.R")
+```
+
+### C.4.1 Table 5
+
+```{r C.4.1 Table 5}
+source("code/R/Table5C41.R")
+```
+
+### C.4.2 Table 6
+
+```{r C.4.2 Table 6}
+source("code/R/Table6C42.R")
+```
+
