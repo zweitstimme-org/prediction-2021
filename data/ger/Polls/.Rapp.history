@@ -1,5 +1,0 @@
-load("/Users/munzerts/Dropbox/Uni/Projects/2017-BTW-Vorhersage-Portal/data/polls/data_bundes_new.RData")
-load("/Users/munzerts/Dropbox/Uni/Research/2017 BTW-Vorhersage/data/polls/data.forecast.Rda")
-ls()
-View(data.forecast)
-load("/Users/munzerts/Dropbox/Uni/Research/2017 BTW-Vorhersage/data/polls/data.forecast.Rda")
