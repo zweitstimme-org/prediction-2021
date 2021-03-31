@@ -1,0 +1,53 @@
+model{
+	
+	  ###################################
+		# Fundamentals Model
+		
+  		### Dirichlet Regression for election e
+      for(l in 1:LA) {
+         v[ind[l,1]:ind[l,2]] ~ ddirch(a[ind[l,1]:ind[l,2]])
+      }
+  
+      ### Define Model - Systematic Component
+      for(i in 1:N){
+          log(a[i]) <- b0[election[i]] + inprod(b[election[i],], x[i,])
+      }
+  
+       # transition model (random walk priors for b0)
+      for (j in 2:L) {
+          mu.b0[j] <- b0[j-1] + drift.b0
+          b0[j] ~ dnorm(mu.b0[j], tau.b0)
+      }
+
+       # priors for transition model, b0
+        b0[1] ~ dnorm(0, 0.01) # initialization
+        drift.b0 ~ dnorm(0, 0.01)
+        tau.b0 ~ dgamma(1.0E-1, 1.0E-1)
+        sigma.b0 <- 1.0/sqrt(tau.b0) 
+  
+       # transition model (random walk priors for b's)
+        for (k in 1:K) { 
+          for (j in 2:L) {
+            mu.b[j,k] <- b[j-1,k] + drift[k]
+            b[j,k] ~ dnorm(mu.b[j,k], tau.b[k])
+          }
+        }
+  		
+      # priors for transition model, b's
+        for(k in 1:K) {
+        b[1,k] ~ dnorm(0, 0.01) # initialization
+        drift[k] ~ dnorm(0, 0.01)
+        tau.b[k] ~ dgamma(1.0E-1, 1.0E-1)
+        sigma.b[k] <- 1.0/sqrt(tau.b[k]) 
+        }
+      
+
+
+
+  		### Forecast upcoming elections
+    	for (j in 1:(nParties)) {
+    	  log(a_pred[j]) <-  b0[L] + inprod(b[L,], xE[j,])
+    	}
+    	
+    	vE[1:nParties] ~ ddirch(a_pred)
+      }
