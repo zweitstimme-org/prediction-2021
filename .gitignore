@@ -5,3 +5,4 @@
 .Ruserdata
 prediction-2021.Rproj
 output/
+*.rds
