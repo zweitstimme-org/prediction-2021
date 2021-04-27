@@ -227,6 +227,14 @@ get_wahlrecht_polls <- function() {
       c("cxu", "spd", "grn", "fdp", "fpd", "lnk", "afd", "son")
     ))
   
+  no_bfrg <- which(!unlist(lapply(test, function(x) "bfrg" %in% names(x))))
+  
+  for(i in no_bfrg){
+    
+    test[[no_bfrg]]["bfrg"] <- NA
+    
+  }
+  
   wahlrecht_df <- do.call(rbind, lapply(test, function(x) {
     match_vec <- na.omit(match(columns, names(x)))
     x[match_vec]

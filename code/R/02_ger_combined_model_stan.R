@@ -20,7 +20,7 @@ source("code/R/auxiliary/functions.r") # Load additional functions
 upcoming_election <- 2021 # What's the next election?
 
 # Parameters for Sampler
-nIter <- 2000
+nIter <- 3000
 nChains <- 6
 
 
@@ -72,9 +72,10 @@ wahlrecht_polls <- get_wahlrecht_polls()
 cutoff <- Sys.Date()
 election_date <- as.Date("2021-09-26")
 
-sel <- (wahlrecht_polls$date > (election_date-365)) & wahlrecht_polls$date <= cutoff
+sel <- (wahlrecht_polls$date > (election_date-365)) & wahlrecht_polls$date <= cutoff & apply(wahlrecht_polls, 1, function(x) !any(is.na(x)))
 
 polls <- wahlrecht_polls[sel,]
+
 
 all_dates <- seq.Date((election_date-365), election_date, 1) 
 polls$t <- match(wahlrecht_polls$date[sel], seq.Date((election_date-365), election_date, 1) )
@@ -124,7 +125,7 @@ results <- stan(file = model_file, data = forstan,
                 iter = nIter, chains = nChains, thin = 1, control = list(adapt_delta = 0.99) )
 
 
-saveRDS(results, file = paste0("output/ger/draws/combined_model/res_brw_", 2021,"_",cutoff,".RDS"))
+# saveRDS(results, file = paste0("output/ger/draws/combined_model/res_brw_", 2021,"_",cutoff,".RDS"))
 
 res <- as.matrix(results)
 
@@ -155,10 +156,9 @@ draws_forecast_levels[["party_names"]] <- party_names
 # Attach Polls used for estimation
 draws_forecast_levels[["polls"]] <- polls
 
-saveRDS(draws_forecast_levels, 
-        file=paste0("../../output/ger/draws/combined_model/draws_forcast_levels_",Election,"_",cutoff,".RDS")
-)
-
+# saveRDS(draws_forecast_levels, 
+#         file=paste0("../../output/ger/draws/combined_model/draws_forcast_levels_",Election,"_",cutoff,".RDS")
+# )
 
 
 df <- draws_forecast_levels
@@ -172,12 +172,12 @@ adjustOrder <- match(c("cdu", "spd", "lin", "gru", "fdp", "afd", "oth"), df$part
 
 
 forecast <- forecast[, adjustOrder]
-as.matrix(forecast)
+#as.matrix(forecast)
 
 names(attr(forecast, "dimnames")) <- NULL
 
 
-df$levels
+#df$levels
 # Mean Forecast
 round(apply(forecast, 2, mean)*100, 1)
 
@@ -205,5 +205,5 @@ date_df <- lapply(lev_list, function(x) rbind(mean=colMeans(x), apply(x, 2, quan
 
 
 
-zweitstimme_output <- list(forecast = data.frame(forecast), poll_aggregator = lapply(lev_list, function(x) data.frame(x)), polls = data.frame(df$polls))
+zweitstimme_output <- list(forecast = data.frame(forecast), poll_aggregator = lapply(lev_list, function(x) data.frame(x)), polls = data.frame(df$polls), timestamp = Sys.time())
 saveRDS(zweitstimme_output, "~/zweitstimme/zweitstimme_output.RDS")
