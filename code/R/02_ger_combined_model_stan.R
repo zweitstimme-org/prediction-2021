@@ -122,7 +122,7 @@ forstan <- list(
 cat("\n Estimating Model for Election", 2021, "with a cutoff of ", cutoff, "\n") 
 
 results <- stan(file = model_file, data = forstan,
-                iter = nIter, chains = nChains, thin = 1, control = list(adapt_delta = 0.99) )
+                iter = nIter, chains = nChains, thin = 1, control = list(adapt_delta = 0.99, max_treedepth = 15) )
 
 
 # saveRDS(results, file = paste0("output/ger/draws/combined_model/res_brw_", 2021,"_",cutoff,".RDS"))
